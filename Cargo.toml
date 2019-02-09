@@ -1,0 +1,25 @@
+[package]
+name = "eangine"
+version = "0.1.0"
+authors = ["Ricardo Ribeiro <ricardo@souzaribeiro.com>"]
+edition = "2018"
+
+[dependencies]
+specs = "0.14.3"
+specs-derive = "0.4.0"
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies.rand]
+version = "0.6.5"
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+stdweb = "0.4.13"
+
+[target.'cfg(target_arch = "wasm32")'.dependencies.rand]
+version = "0.6.5"
+features = ["stdweb"]
+
+[dependencies.quicksilver]
+version = "0.3.6"
+path = "../quicksilver"
+default-features = false
+features = ["fonts", "sounds"]
