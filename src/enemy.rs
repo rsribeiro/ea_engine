@@ -145,7 +145,7 @@ impl Default for BossConfig {
             lives: 10,
             normal_lives: 5,
             shooter_config: ShooterConfig {
-                projectile_sprite: "bossfireball".to_string(),
+                projectile_sprite: "tiro".to_string(),
                 maximum_projectiles: 2,
                 projectile_coefficient_1: 0.075,
                 projectile_coefficient_2: -0.05,

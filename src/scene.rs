@@ -9,7 +9,7 @@ use crate::{
     healing::HealingConfig,
     hero::HeroConfig,
     instant::Instant,
-    music::{Music, MusicPlayer},
+    music::{Music, MusicPlayer, MusicPlayerConfig},
     resources::{
         DeltaTime, GameStateFlag, GameStateFlagRes, KeyboardKeys, LabelVariable, PressedKeys,
         VariableDictionary,
@@ -46,6 +46,7 @@ pub struct SceneConfig {
     pub victory_background: String,
     pub hero_config: HeroConfig,
     pub boss_config: BossConfig,
+    pub music_player_config: MusicPlayerConfig,
     pub boss_cycle: u32,
     pub new_body_cycle: u64,
 }
@@ -60,6 +61,7 @@ impl Default for SceneConfig {
             victory_background: "ceu".to_string(),
             hero_config: HeroConfig::default(),
             boss_config: BossConfig::default(),
+            music_player_config: MusicPlayerConfig::default(),
             boss_cycle: 11,
             new_body_cycle: 210,
         }
@@ -210,7 +212,7 @@ impl Scene {
     ) -> Result<Scene> {
         let atlas = Rc::new(RefCell::new(Asset::new(Atlas::load(config.atlas.clone()))));
         let font = Rc::new(RefCell::new(Asset::new(Font::load(config.font.clone()))));
-        let music_player = MusicPlayer::new()?;
+        let music_player = MusicPlayer::new(config.music_player_config.clone())?;
 
         let mut world = World::new();
         register_components(&mut world);

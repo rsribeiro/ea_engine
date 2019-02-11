@@ -4,11 +4,6 @@ use quicksilver::{
     Future, Result,
 };
 
-const NORMAL_MUSIC: &str = "music/normal.ogg";
-const BOSS_MUSIC: &str = "music/boss.ogg";
-const GAME_OVER_MUSIC: &str = "music/gameover.ogg";
-const VICTORY_MUSIC: &str = "music/victory.ogg";
-
 pub enum Music {
     NormalMusic,
     BossMusic,
@@ -21,12 +16,31 @@ pub struct MusicPlayer {
     stop_handle: Option<StopHandle>,
 }
 
+#[derive(Debug, Clone)]
+pub struct MusicPlayerConfig {
+    pub normal_music: String,
+    pub boss_music: String,
+    pub game_over_music: String,
+    pub victory_music: String,
+}
+
+impl Default for MusicPlayerConfig {
+    fn default() -> MusicPlayerConfig {
+        MusicPlayerConfig {
+            normal_music: "music/normal.ogg".to_string(),
+            boss_music: "music/boss.ogg".to_string(),
+            game_over_music: "music/gameover.ogg".to_string(),
+            victory_music: "music/victory.ogg".to_string(),
+        }
+    }
+}
+
 impl MusicPlayer {
-    pub fn new() -> Result<MusicPlayer> {
-        let assets = Asset::new(Sound::load(NORMAL_MUSIC).join4(
-            Sound::load(BOSS_MUSIC),
-            Sound::load(GAME_OVER_MUSIC),
-            Sound::load(VICTORY_MUSIC),
+    pub fn new(config: MusicPlayerConfig) -> Result<MusicPlayer> {
+        let assets = Asset::new(Sound::load(config.normal_music).join4(
+            Sound::load(config.boss_music),
+            Sound::load(config.game_over_music),
+            Sound::load(config.victory_music),
         ));
 
         Ok(MusicPlayer {

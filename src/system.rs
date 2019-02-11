@@ -339,7 +339,7 @@ impl CollisionSystem {
                         change_sprite.do_change = true;
                     }
                     if let Some(shooter) = shooter {
-                        shooter.maximum_fireballs += 2;
+                        shooter.maximum_fireballs = 4;
                     }
                 }
             } else if enemy_body_area.overlaps(&hero_body_area) && !hero.blinking {
