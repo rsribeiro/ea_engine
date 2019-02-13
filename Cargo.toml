@@ -19,7 +19,9 @@ version = "0.6.5"
 features = ["stdweb"]
 
 [dependencies.quicksilver]
-version = "0.3.6"
-path = "../quicksilver"
+version = "0.3.7"
 default-features = false
 features = ["fonts", "sounds"]
+
+[patch.crates-io]
+quicksilver = { path = "../quicksilver" }
