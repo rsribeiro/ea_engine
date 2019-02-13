@@ -163,22 +163,22 @@ impl State for Scene {
                 let mut pressed_keys = self.world.write_resource::<PressedKeys>();
                 let pressed_keys = &mut pressed_keys.pressed_keys;
                 match event {
-                    Event::Key(Key::Up, ButtonState::Pressed) => {
+                    Event::Key(Key::Up, ButtonState::Pressed) | Event::Key(Key::W, ButtonState::Pressed) => {
                         pressed_keys.add(KeyboardKeys::KeyUp as u32);
                     }
-                    Event::Key(Key::Up, ButtonState::Released) => {
+                    Event::Key(Key::Up, ButtonState::Released) | Event::Key(Key::W, ButtonState::Released) => {
                         pressed_keys.remove(KeyboardKeys::KeyUp as u32);
                     }
-                    Event::Key(Key::Left, ButtonState::Pressed) => {
+                    Event::Key(Key::Left, ButtonState::Pressed) | Event::Key(Key::A, ButtonState::Pressed) => {
                         pressed_keys.add(KeyboardKeys::KeyLeft as u32);
                     }
-                    Event::Key(Key::Left, ButtonState::Released) => {
+                    Event::Key(Key::Left, ButtonState::Released) | Event::Key(Key::A, ButtonState::Released) => {
                         pressed_keys.remove(KeyboardKeys::KeyLeft as u32);
                     }
-                    Event::Key(Key::Right, ButtonState::Pressed) => {
+                    Event::Key(Key::Right, ButtonState::Pressed) | Event::Key(Key::D, ButtonState::Pressed) => {
                         pressed_keys.add(KeyboardKeys::KeyRight as u32);
                     }
-                    Event::Key(Key::Right, ButtonState::Released) => {
+                    Event::Key(Key::Right, ButtonState::Released) | Event::Key(Key::D, ButtonState::Released) => {
                         pressed_keys.remove(KeyboardKeys::KeyRight as u32);
                     }
                     _ => {}

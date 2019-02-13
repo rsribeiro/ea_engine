@@ -55,10 +55,22 @@ impl MusicPlayer {
         let mut handle: Option<StopHandle> = None;
         self.assets.execute(|music_list| {
             handle = match music {
-                Music::NormalMusic => Some(music_list.0.play()?),
-                Music::BossMusic => Some(music_list.1.play()?),
-                Music::GameOverMusic => Some(music_list.2.play()?),
-                Music::VictoryMusic => Some(music_list.3.play()?),
+                Music::NormalMusic => {
+                    music_list.0.set_volume(0.75);
+                    Some(music_list.0.play()?)
+                },
+                Music::BossMusic => {
+                    music_list.1.set_volume(0.75);
+                    Some(music_list.1.play()?)
+                },
+                Music::GameOverMusic => {
+                    music_list.2.set_volume(0.75);
+                    Some(music_list.2.play()?)
+                },
+                Music::VictoryMusic => {
+                    music_list.3.set_volume(0.75);
+                    Some(music_list.3.play()?)
+                },
             };
             Ok(())
         })?;
