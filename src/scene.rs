@@ -34,6 +34,7 @@ use specs::{BitSet, Builder, Entity, RunNow, World};
 enum GameState {
     Initialiazing,
     Running,
+    Paused,
     GameOver,
 }
 
@@ -126,6 +127,8 @@ impl State for Scene {
                     GameStateFlag::Defeat => self.defeat(),
                 }?;
             }
+        } else if self.state == GameState::Paused {
+            self.update_time_step()?;
         }
         self.world.maintain();
         Ok(())
@@ -135,7 +138,7 @@ impl State for Scene {
         window.clear(Color::WHITE)?;
 
         let mut running = self.state == GameState::Running;
-        if !running {
+        if !running && self.state != GameState::Paused {
             self.atlas.borrow_mut().execute(|_| {
                 running = true;
                 Ok(())
@@ -151,6 +154,8 @@ impl State for Scene {
         RenderSystem::new(window, Rc::clone(&self.atlas))?.run_now(&self.world.res);
         if self.state == GameState::Running {
             self.update_labels(window)?;
+        }
+        if self.state == GameState::Running || self.state == GameState::Paused {
             LabelRenderSystem::new(window, Rc::clone(&self.font))?.run_now(&self.world.res);
         }
         self.world.maintain();
@@ -159,7 +164,7 @@ impl State for Scene {
 
     fn event(&mut self, event: &Event, window: &mut Window) -> Result<()> {
         match self.state {
-            GameState::Running => {
+            GameState::Running | GameState::Paused => {
                 let mut pressed_keys = self.world.write_resource::<PressedKeys>();
                 let pressed_keys = &mut pressed_keys.pressed_keys;
                 match event {
@@ -181,6 +186,13 @@ impl State for Scene {
                     Event::Key(Key::Right, ButtonState::Released) | Event::Key(Key::D, ButtonState::Released) => {
                         pressed_keys.remove(KeyboardKeys::KeyRight as u32);
                     }
+                    Event::Key(Key::P, ButtonState::Pressed) | Event::Key(Key::Pause, ButtonState::Pressed) => {
+                        if self.state == GameState::Running {
+                            self.state = GameState::Paused;
+                        } else if self.state == GameState::Paused {
+                            self.state = GameState::Running;
+                        }
+                    }
                     _ => {}
                 };
 
@@ -192,10 +204,7 @@ impl State for Scene {
                 }
             }
             GameState::GameOver => {
-                if let Event::Key(Key::Escape, ButtonState::Pressed) = event {
-                    window.close();
-                }
-                if let Event::Key(Key::Return, ButtonState::Pressed) = event {
+                if let Event::Key(Key::Escape, ButtonState::Pressed) | Event::Key(Key::Return, ButtonState::Pressed)= event {
                     window.close();
                 }
             }
