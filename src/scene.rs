@@ -23,7 +23,7 @@ use crate::{
 use quicksilver::{
     geom::Vector,
     graphics::{Atlas, Color, Font, FontStyle},
-    input::{ButtonState, Key},
+    input::{ButtonState, GamepadButton, Key},
     lifecycle::{Asset, Event, State, Window},
     Result,
 };
@@ -168,25 +168,25 @@ impl State for Scene {
                 let mut pressed_keys = self.world.write_resource::<PressedKeys>();
                 let pressed_keys = &mut pressed_keys.pressed_keys;
                 match event {
-                    Event::Key(Key::Up, ButtonState::Pressed) | Event::Key(Key::W, ButtonState::Pressed) => {
+                    Event::Key(Key::Up, ButtonState::Pressed) | Event::Key(Key::W, ButtonState::Pressed) | Event::GamepadButton(_, GamepadButton::DpadUp, ButtonState::Pressed) => {
                         pressed_keys.add(KeyboardKeys::KeyUp as u32);
                     }
-                    Event::Key(Key::Up, ButtonState::Released) | Event::Key(Key::W, ButtonState::Released) => {
+                    Event::Key(Key::Up, ButtonState::Released) | Event::Key(Key::W, ButtonState::Released) | Event::GamepadButton(_, GamepadButton::DpadUp, ButtonState::Released) => {
                         pressed_keys.remove(KeyboardKeys::KeyUp as u32);
                     }
-                    Event::Key(Key::Left, ButtonState::Pressed) | Event::Key(Key::A, ButtonState::Pressed) => {
+                    Event::Key(Key::Left, ButtonState::Pressed) | Event::Key(Key::A, ButtonState::Pressed) | Event::GamepadButton(_, GamepadButton::DpadLeft, ButtonState::Pressed) => {
                         pressed_keys.add(KeyboardKeys::KeyLeft as u32);
                     }
-                    Event::Key(Key::Left, ButtonState::Released) | Event::Key(Key::A, ButtonState::Released) => {
+                    Event::Key(Key::Left, ButtonState::Released) | Event::Key(Key::A, ButtonState::Released) | Event::GamepadButton(_, GamepadButton::DpadLeft, ButtonState::Released) => {
                         pressed_keys.remove(KeyboardKeys::KeyLeft as u32);
                     }
-                    Event::Key(Key::Right, ButtonState::Pressed) | Event::Key(Key::D, ButtonState::Pressed) => {
+                    Event::Key(Key::Right, ButtonState::Pressed) | Event::Key(Key::D, ButtonState::Pressed) | Event::GamepadButton(_, GamepadButton::DpadRight, ButtonState::Pressed) => {
                         pressed_keys.add(KeyboardKeys::KeyRight as u32);
                     }
-                    Event::Key(Key::Right, ButtonState::Released) | Event::Key(Key::D, ButtonState::Released) => {
+                    Event::Key(Key::Right, ButtonState::Released) | Event::Key(Key::D, ButtonState::Released) | Event::GamepadButton(_, GamepadButton::DpadRight, ButtonState::Released) => {
                         pressed_keys.remove(KeyboardKeys::KeyRight as u32);
                     }
-                    Event::Key(Key::P, ButtonState::Pressed) | Event::Key(Key::Pause, ButtonState::Pressed) => {
+                    Event::Key(Key::P, ButtonState::Pressed) | Event::Key(Key::Pause, ButtonState::Pressed) | Event::GamepadButton(_, GamepadButton::Start, ButtonState::Pressed) => {
                         if self.state == GameState::Running {
                             self.state = GameState::Paused;
                         } else if self.state == GameState::Paused {
@@ -204,7 +204,7 @@ impl State for Scene {
                 }
             }
             GameState::GameOver => {
-                if let Event::Key(Key::Escape, ButtonState::Pressed) | Event::Key(Key::Return, ButtonState::Pressed)= event {
+                if let Event::Key(Key::Escape, ButtonState::Pressed) | Event::Key(Key::Return, ButtonState::Pressed) | Event::GamepadButton(_, GamepadButton::Start, ButtonState::Pressed) = event {
                     window.close();
                 }
             }
