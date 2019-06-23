@@ -34,8 +34,7 @@ pub struct Shooter {
     pub projectile_sprite: String,
     pub maximum_fireballs: i32,
     pub fireball_amount: i32,
-    pub coefficient_1: f32,
-    pub coefficient_2: f32,
+    pub coefficient: (f32, f32),
 }
 
 #[derive(Component, Debug)]

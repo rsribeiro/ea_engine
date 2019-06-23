@@ -1,6 +1,7 @@
 use crate::component::{
     Boss, CalculateOutOfBounds, ChangeSprite, Enemy, Fireball, Position, Render, Shooter, Velocity,
 };
+use serde::{Deserialize, Serialize};
 
 use specs::{
     world::{Builder, Index},
@@ -27,13 +28,21 @@ pub fn get_enemy_head_body_area(self_area: Rectangle, position: Vector) -> (Rect
     )
 }
 
-#[derive(Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct EnemyConfig {
     pub sprite: String,
     pub position: Vector,
     pub velocity: Vector,
     pub score: i32,
     pub shooter_config: Option<ShooterConfig>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub enum EnemyType {
+    Walker,
+    Shooter,
+    Flyer,
+    FireballShower,
 }
 
 pub fn create_enemy(world: &mut World, config: EnemyConfig) {
@@ -58,8 +67,7 @@ pub fn create_enemy(world: &mut World, config: EnemyConfig) {
             projectile_sprite: shooter_config.projectile_sprite.clone(),
             maximum_fireballs: shooter_config.maximum_projectiles,
             fireball_amount: 0,
-            coefficient_1: shooter_config.projectile_coefficient_1,
-            coefficient_2: shooter_config.projectile_coefficient_2,
+            coefficient: shooter_config.projectile_coefficient,
         });
     }
     builder.build();
@@ -95,8 +103,7 @@ pub fn create_shooter(world: &mut World) {
         shooter_config: Some(ShooterConfig {
             projectile_sprite: "tiro".to_string(),
             maximum_projectiles: 2,
-            projectile_coefficient_1: 0.175,
-            projectile_coefficient_2: 0.0,
+            projectile_coefficient: (0.175, 0.0),
         }),
     };
     create_enemy(world, config);
@@ -111,14 +118,14 @@ pub fn create_flyer(world: &mut World) {
         shooter_config: Some(ShooterConfig {
             projectile_sprite: "tiro".to_string(),
             maximum_projectiles: 1,
-            projectile_coefficient_1: 0.250,
-            projectile_coefficient_2: 0.0,
+            projectile_coefficient: (0.250, 0.0),
         }),
     };
     create_enemy(world, config);
 }
 
-#[derive(Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(default)]
 pub struct BossConfig {
     pub sprite: String,
     pub angry_sprite: String,
@@ -128,12 +135,11 @@ pub struct BossConfig {
     pub shooter_config: ShooterConfig,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ShooterConfig {
     pub projectile_sprite: String,
     pub maximum_projectiles: i32,
-    pub projectile_coefficient_1: f32,
-    pub projectile_coefficient_2: f32,
+    pub projectile_coefficient: (f32, f32),
 }
 
 impl Default for BossConfig {
@@ -147,8 +153,7 @@ impl Default for BossConfig {
             shooter_config: ShooterConfig {
                 projectile_sprite: "tiro".to_string(),
                 maximum_projectiles: 2,
-                projectile_coefficient_1: 0.075,
-                projectile_coefficient_2: -0.05,
+                projectile_coefficient: (0.075, -0.05),
             },
         }
     }
@@ -177,20 +182,20 @@ pub fn create_boss(world: &mut World, config: BossConfig) {
             projectile_sprite: config.shooter_config.projectile_sprite.clone(),
             maximum_fireballs: config.shooter_config.maximum_projectiles,
             fireball_amount: 0,
-            coefficient_1: config.shooter_config.projectile_coefficient_1,
-            coefficient_2: config.shooter_config.projectile_coefficient_2,
+            coefficient: config.shooter_config.projectile_coefficient,
         })
         .build();
 }
 
-#[derive(Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct FireballConfig {
     pub sprite: String,
     pub position: Vector,
     pub velocity: Vector,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(default)]
 pub struct FireballShowerConfig {
     pub sprite: String,
     pub y_velocity: f32,

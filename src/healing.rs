@@ -1,12 +1,11 @@
 use crate::component::{CalculateOutOfBounds, Healing, Position, Render, Velocity};
-
+use quicksilver::geom::Vector;
 use rand::{thread_rng, Rng};
-
+use serde::{Deserialize, Serialize};
 use specs::{Builder, Entity, World};
 
-use quicksilver::geom::Vector;
-
-#[derive(Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(default)]
 pub struct HealingConfig {
     pub sprite: String,
     pub position: Vector,

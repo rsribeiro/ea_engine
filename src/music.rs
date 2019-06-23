@@ -3,6 +3,7 @@ use quicksilver::{
     sound::{Sound, StopHandle},
     Future, Result,
 };
+use serde::{Deserialize, Serialize};
 
 pub enum Music {
     NormalMusic,
@@ -16,7 +17,8 @@ pub struct MusicPlayer {
     stop_handle: Option<StopHandle>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(default)]
 pub struct MusicPlayerConfig {
     pub normal_music: String,
     pub boss_music: String,
@@ -36,7 +38,7 @@ impl Default for MusicPlayerConfig {
 }
 
 impl MusicPlayer {
-    pub fn new(config: MusicPlayerConfig) -> Result<MusicPlayer> {
+    pub fn new(config: MusicPlayerConfig) -> Result<Self> {
         let assets = Asset::new(Sound::load(config.normal_music).join4(
             Sound::load(config.boss_music),
             Sound::load(config.game_over_music),
@@ -58,19 +60,19 @@ impl MusicPlayer {
                 Music::NormalMusic => {
                     music_list.0.set_volume(0.75);
                     Some(music_list.0.play()?)
-                },
+                }
                 Music::BossMusic => {
                     music_list.1.set_volume(0.75);
                     Some(music_list.1.play()?)
-                },
+                }
                 Music::GameOverMusic => {
                     music_list.2.set_volume(0.75);
                     Some(music_list.2.play()?)
-                },
+                }
                 Music::VictoryMusic => {
                     music_list.3.set_volume(0.75);
                     Some(music_list.3.play()?)
-                },
+                }
             };
             Ok(())
         })?;

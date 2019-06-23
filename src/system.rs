@@ -507,8 +507,8 @@ impl<'a> System<'a> for FireballSystem {
                     position: pos.position,
                     velocity: Vector::new(
                         -1000.0
-                            * ((shooter.coefficient_1 * (shooter.fireball_amount + 1) as f32
-                                + shooter.coefficient_2)
+                            * ((shooter.coefficient.0 * (shooter.fireball_amount + 1) as f32
+                                + shooter.coefficient.1)
                                 + randomness),
                         0.0,
                     ),

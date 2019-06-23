@@ -1,10 +1,8 @@
-use std::time::Duration;
-
 use crate::component::{CalculateOutOfBounds, Hero, Position, Render, Velocity};
-
 use quicksilver::geom::{Rectangle, Shape, Vector};
-
+use serde::{Deserialize, Serialize};
 use specs::{Builder, Entity, World};
+use std::time::Duration;
 
 const HERO_FEET_HEIGHT: f32 = 10.0;
 
@@ -22,7 +20,8 @@ pub fn get_hero_body_feet_area(self_area: Rectangle, position: Vector) -> (Recta
     )
 }
 
-#[derive(Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(default)]
 pub struct HeroConfig {
     pub sprite: String,
     pub position: Vector,

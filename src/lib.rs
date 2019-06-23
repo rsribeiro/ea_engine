@@ -9,6 +9,8 @@ extern crate stdweb;
 
 pub mod component;
 pub mod enemy;
+pub mod entity_factory;
+pub mod game;
 pub mod healing;
 pub mod hero;
 pub mod instant;

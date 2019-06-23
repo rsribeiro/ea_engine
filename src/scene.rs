@@ -1,3 +1,4 @@
+use serde::{Deserialize, Serialize};
 use std::{cell::RefCell, rc::Rc, time::Duration};
 
 use crate::{
@@ -6,7 +7,7 @@ use crate::{
         Label, Position, Render, Shooter, Velocity,
     },
     enemy::BossConfig,
-    healing::HealingConfig,
+    entity_factory::{EntityFactory, EntityFactoryConfig},
     hero::HeroConfig,
     instant::Instant,
     music::{Music, MusicPlayer, MusicPlayerConfig},
@@ -20,15 +21,9 @@ use crate::{
     },
 };
 
-use quicksilver::{
-    geom::Vector,
-    graphics::{Atlas, Color, Font, FontStyle},
-    input::{ButtonState, GamepadButton, Key},
-    lifecycle::{Asset, Event, State, Window},
-    Result,
-};
+use quicksilver::{graphics::Atlas, prelude::*};
 
-use specs::{BitSet, Builder, Entity, RunNow, World};
+use specs::prelude::*;
 
 #[derive(PartialEq)]
 enum GameState {
@@ -38,7 +33,8 @@ enum GameState {
     GameOver,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(default)]
 pub struct SceneConfig {
     pub atlas: String,
     pub font: String,
@@ -48,6 +44,7 @@ pub struct SceneConfig {
     pub hero_config: HeroConfig,
     pub boss_config: BossConfig,
     pub music_player_config: MusicPlayerConfig,
+    pub entity_factory_config: EntityFactoryConfig,
     pub boss_cycle: u32,
     pub new_body_cycle: u64,
 }
@@ -63,6 +60,7 @@ impl Default for SceneConfig {
             hero_config: HeroConfig::default(),
             boss_config: BossConfig::default(),
             music_player_config: MusicPlayerConfig::default(),
+            entity_factory_config: EntityFactoryConfig::default(),
             boss_cycle: 11,
             new_body_cycle: 210,
         }
@@ -79,146 +77,12 @@ pub struct Scene {
     cycle_counter: u32,
     music_player: MusicPlayer,
     last_instant: Instant,
-    entity_factory: Box<Fn(&mut World, u32) -> Result<()>>,
+    entity_factory: EntityFactory,
     config: SceneConfig,
 }
 
-impl State for Scene {
-    fn new() -> Result<Scene> {
-        let config = SceneConfig::default();
-
-        let entity_factory = |world: &mut World, cycle_counter: u32| {
-            let healing_config = HealingConfig {
-                sprite: "potion".to_string(),
-                position: Vector::new(50.0 + rand::random::<f32>() * 700.0, -100.0),
-                velocity: Vector::new(0.0, 250.0),
-                score: 50,
-            };
-
-            if cycle_counter % 2 == 1 {
-                crate::enemy::create_walker(world);
-            } else {
-                crate::enemy::create_shooter(world);
-            }
-            if cycle_counter % 3 == 0 {
-                crate::healing::create_healing_potion(world, healing_config);
-            }
-            Ok(())
-        };
-        Scene::new(Box::new(entity_factory), config)
-    }
-
-    fn update(&mut self, _window: &mut Window) -> Result<()> {
-        if self.state == GameState::Running {
-            self.update_time_step()?;
-            self.entity_factory()?;
-
-            HeroControlSystem.run_now(&self.world.res);
-            WalkSystem.run_now(&self.world.res);
-            FireballSystem.run_now(&self.world.res);
-            CollisionSystem.run_now(&self.world.res);
-            OutOfBoundsSystem.run_now(&self.world.res);
-            HeroBlinkingSystem.run_now(&self.world.res);
-
-            let flag = self.world.read_resource::<GameStateFlagRes>().flag;
-            if let Some(f) = flag {
-                match f {
-                    GameStateFlag::Victory => self.victory(),
-                    GameStateFlag::Defeat => self.defeat(),
-                }?;
-            }
-        } else if self.state == GameState::Paused {
-            self.update_time_step()?;
-        }
-        self.world.maintain();
-        Ok(())
-    }
-
-    fn draw(&mut self, window: &mut Window) -> Result<()> {
-        window.clear(Color::WHITE)?;
-
-        let mut running = self.state == GameState::Running;
-        if !running && self.state != GameState::Paused {
-            self.atlas.borrow_mut().execute(|_| {
-                running = true;
-                Ok(())
-            })?;
-
-            if self.state == GameState::Initialiazing && running {
-                self.state = GameState::Running;
-            } else if self.state == GameState::Initialiazing && !running {
-                return Ok(());
-            }
-        }
-
-        RenderSystem::new(window, Rc::clone(&self.atlas))?.run_now(&self.world.res);
-        if self.state == GameState::Running {
-            self.update_labels(window)?;
-        }
-        if self.state == GameState::Running || self.state == GameState::Paused {
-            LabelRenderSystem::new(window, Rc::clone(&self.font))?.run_now(&self.world.res);
-        }
-        self.world.maintain();
-        Ok(())
-    }
-
-    fn event(&mut self, event: &Event, window: &mut Window) -> Result<()> {
-        match self.state {
-            GameState::Running | GameState::Paused => {
-                let mut pressed_keys = self.world.write_resource::<PressedKeys>();
-                let pressed_keys = &mut pressed_keys.pressed_keys;
-                match event {
-                    Event::Key(Key::Up, ButtonState::Pressed) | Event::Key(Key::W, ButtonState::Pressed) | Event::GamepadButton(_, GamepadButton::DpadUp, ButtonState::Pressed) => {
-                        pressed_keys.add(KeyboardKeys::KeyUp as u32);
-                    }
-                    Event::Key(Key::Up, ButtonState::Released) | Event::Key(Key::W, ButtonState::Released) | Event::GamepadButton(_, GamepadButton::DpadUp, ButtonState::Released) => {
-                        pressed_keys.remove(KeyboardKeys::KeyUp as u32);
-                    }
-                    Event::Key(Key::Left, ButtonState::Pressed) | Event::Key(Key::A, ButtonState::Pressed) | Event::GamepadButton(_, GamepadButton::DpadLeft, ButtonState::Pressed) => {
-                        pressed_keys.add(KeyboardKeys::KeyLeft as u32);
-                    }
-                    Event::Key(Key::Left, ButtonState::Released) | Event::Key(Key::A, ButtonState::Released) | Event::GamepadButton(_, GamepadButton::DpadLeft, ButtonState::Released) => {
-                        pressed_keys.remove(KeyboardKeys::KeyLeft as u32);
-                    }
-                    Event::Key(Key::Right, ButtonState::Pressed) | Event::Key(Key::D, ButtonState::Pressed) | Event::GamepadButton(_, GamepadButton::DpadRight, ButtonState::Pressed) => {
-                        pressed_keys.add(KeyboardKeys::KeyRight as u32);
-                    }
-                    Event::Key(Key::Right, ButtonState::Released) | Event::Key(Key::D, ButtonState::Released) | Event::GamepadButton(_, GamepadButton::DpadRight, ButtonState::Released) => {
-                        pressed_keys.remove(KeyboardKeys::KeyRight as u32);
-                    }
-                    Event::Key(Key::P, ButtonState::Pressed) | Event::Key(Key::Pause, ButtonState::Pressed) | Event::GamepadButton(_, GamepadButton::Start, ButtonState::Pressed) => {
-                        if self.state == GameState::Running {
-                            self.state = GameState::Paused;
-                        } else if self.state == GameState::Paused {
-                            self.state = GameState::Running;
-                        }
-                    }
-                    _ => {}
-                };
-
-                if let Event::Key(Key::Escape, ButtonState::Pressed) = event {
-                    let mut flag = self.world.write_resource::<GameStateFlagRes>();
-                    *flag = GameStateFlagRes {
-                        flag: Some(GameStateFlag::Defeat),
-                    };
-                }
-            }
-            GameState::GameOver => {
-                if let Event::Key(Key::Escape, ButtonState::Pressed) | Event::Key(Key::Return, ButtonState::Pressed) | Event::GamepadButton(_, GamepadButton::Start, ButtonState::Pressed) = event {
-                    window.close();
-                }
-            }
-            _ => {}
-        }
-        Ok(())
-    }
-}
-
 impl Scene {
-    pub fn new(
-        entity_factory: Box<Fn(&mut World, u32) -> Result<()>>,
-        config: SceneConfig,
-    ) -> Result<Scene> {
+    pub fn new(config: SceneConfig) -> Result<Self> {
         let atlas = Rc::new(RefCell::new(Asset::new(Atlas::load(config.atlas.clone()))));
         let font = Rc::new(RefCell::new(Asset::new(Font::load(config.font.clone()))));
         let music_player = MusicPlayer::new(config.music_player_config.clone())?;
@@ -258,9 +122,134 @@ impl Scene {
             cycle_counter: 0,
             music_player,
             last_instant: Instant::now(),
-            entity_factory,
+            entity_factory: EntityFactory::new(config.entity_factory_config.clone())?,
             config,
         })
+    }
+
+    pub fn update(&mut self, _window: &mut Window) -> Result<()> {
+        if self.state == GameState::Running {
+            self.update_time_step()?;
+            self.entity_factory()?;
+            self.run_update_systems()?;
+            let flag = self.world.read_resource::<GameStateFlagRes>().flag;
+            if let Some(f) = flag {
+                match f {
+                    GameStateFlag::Victory => self.victory(),
+                    GameStateFlag::Defeat => self.defeat(),
+                }?;
+            }
+        } else if self.state == GameState::Paused {
+            self.update_time_step()?;
+        }
+        self.world.maintain();
+        Ok(())
+    }
+
+    pub fn draw(&mut self, window: &mut Window) -> Result<()> {
+        window.clear(Color::WHITE)?;
+
+        let mut running = self.state == GameState::Running;
+        if !running && self.state != GameState::Paused {
+            self.atlas.borrow_mut().execute(|_| {
+                running = true;
+                Ok(())
+            })?;
+
+            if self.state == GameState::Initialiazing && running {
+                self.state = GameState::Running;
+            } else if self.state == GameState::Initialiazing && !running {
+                return Ok(());
+            }
+        }
+
+        RenderSystem::new(window, Rc::clone(&self.atlas))?.run_now(&self.world.res);
+        if self.state == GameState::Running {
+            self.update_labels(window)?;
+        }
+        if self.state == GameState::Running || self.state == GameState::Paused {
+            LabelRenderSystem::new(window, Rc::clone(&self.font))?.run_now(&self.world.res);
+        }
+        self.world.maintain();
+        Ok(())
+    }
+
+    pub fn event(&mut self, event: &Event, window: &mut Window) -> Result<()> {
+        match self.state {
+            GameState::Running | GameState::Paused => {
+                let mut pressed_keys = self.world.write_resource::<PressedKeys>();
+                let pressed_keys = &mut pressed_keys.pressed_keys;
+                match event {
+                    Event::Key(Key::Up, ButtonState::Pressed)
+                    | Event::Key(Key::W, ButtonState::Pressed)
+                    | Event::GamepadButton(_, GamepadButton::DpadUp, ButtonState::Pressed) => {
+                        pressed_keys.add(KeyboardKeys::KeyUp as u32);
+                    }
+                    Event::Key(Key::Up, ButtonState::Released)
+                    | Event::Key(Key::W, ButtonState::Released)
+                    | Event::GamepadButton(_, GamepadButton::DpadUp, ButtonState::Released) => {
+                        pressed_keys.remove(KeyboardKeys::KeyUp as u32);
+                    }
+                    Event::Key(Key::Left, ButtonState::Pressed)
+                    | Event::Key(Key::A, ButtonState::Pressed)
+                    | Event::GamepadButton(_, GamepadButton::DpadLeft, ButtonState::Pressed) => {
+                        pressed_keys.add(KeyboardKeys::KeyLeft as u32);
+                    }
+                    Event::Key(Key::Left, ButtonState::Released)
+                    | Event::Key(Key::A, ButtonState::Released)
+                    | Event::GamepadButton(_, GamepadButton::DpadLeft, ButtonState::Released) => {
+                        pressed_keys.remove(KeyboardKeys::KeyLeft as u32);
+                    }
+                    Event::Key(Key::Right, ButtonState::Pressed)
+                    | Event::Key(Key::D, ButtonState::Pressed)
+                    | Event::GamepadButton(_, GamepadButton::DpadRight, ButtonState::Pressed) => {
+                        pressed_keys.add(KeyboardKeys::KeyRight as u32);
+                    }
+                    Event::Key(Key::Right, ButtonState::Released)
+                    | Event::Key(Key::D, ButtonState::Released)
+                    | Event::GamepadButton(_, GamepadButton::DpadRight, ButtonState::Released) => {
+                        pressed_keys.remove(KeyboardKeys::KeyRight as u32);
+                    }
+                    Event::Key(Key::P, ButtonState::Pressed)
+                    | Event::Key(Key::Pause, ButtonState::Pressed)
+                    | Event::GamepadButton(_, GamepadButton::Start, ButtonState::Pressed) => {
+                        if self.state == GameState::Running {
+                            self.state = GameState::Paused;
+                        } else if self.state == GameState::Paused {
+                            self.state = GameState::Running;
+                        }
+                    }
+                    _ => {}
+                };
+
+                if let Event::Key(Key::Escape, ButtonState::Pressed) = event {
+                    let mut flag = self.world.write_resource::<GameStateFlagRes>();
+                    *flag = GameStateFlagRes {
+                        flag: Some(GameStateFlag::Defeat),
+                    };
+                }
+            }
+            GameState::GameOver => {
+                if let Event::Key(Key::Escape, ButtonState::Pressed)
+                | Event::Key(Key::Return, ButtonState::Pressed)
+                | Event::GamepadButton(_, GamepadButton::Start, ButtonState::Pressed) = event
+                {
+                    window.close();
+                }
+            }
+            _ => {}
+        }
+        Ok(())
+    }
+
+    fn run_update_systems(&mut self) -> Result<()> {
+        HeroControlSystem.run_now(&self.world.res);
+        WalkSystem.run_now(&self.world.res);
+        FireballSystem.run_now(&self.world.res);
+        CollisionSystem.run_now(&self.world.res);
+        OutOfBoundsSystem.run_now(&self.world.res);
+        HeroBlinkingSystem.run_now(&self.world.res);
+        Ok(())
     }
 
     fn entity_factory(&mut self) -> Result<()> {
@@ -275,7 +264,7 @@ impl Scene {
                     self.music_player.play_music(Music::BossMusic)?;
                     crate::enemy::create_boss(&mut self.world, self.config.boss_config.clone());
                 } else {
-                    (self.entity_factory)(&mut self.world, self.cycle_counter)?;
+                    self.entity_factory.create_entity(&mut self.world)?;
                 }
             }
         }
