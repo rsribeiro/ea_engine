@@ -142,6 +142,7 @@ impl Scene {
         } else if self.state == GameState::Paused {
             self.update_time_step()?;
         }
+        self.music_player.update()?;
         self.world.maintain();
         Ok(())
     }

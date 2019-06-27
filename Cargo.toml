@@ -1,6 +1,6 @@
 [package]
 name = "eangine"
-version = "0.3.0"
+version = "0.3.1"
 authors = ["Ricardo Ribeiro <ricardo@souzaribeiro.com>"]
 edition = "2018"
 categories = ["game-engines"]

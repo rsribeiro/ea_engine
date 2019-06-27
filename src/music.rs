@@ -14,6 +14,7 @@ pub enum Music {
 
 pub struct MusicPlayer {
     assets: Asset<(Sound, Sound, Sound, Sound)>,
+    current_music: Option<Music>,
     stop_handle: Option<StopHandle>,
 }
 
@@ -47,43 +48,54 @@ impl MusicPlayer {
 
         Ok(MusicPlayer {
             assets,
+            current_music: None,
             stop_handle: None,
         })
     }
 
+    pub fn update(&mut self) -> Result<()> {
+        if self.stop_handle.is_none() {
+            if let Some(music) = &self.current_music {
+                let mut handle: Option<StopHandle> = None;
+                self.assets.execute(|music_list| {
+                    handle = match music {
+                        Music::NormalMusic => {
+                            music_list.0.set_volume(0.75);
+                            Some(music_list.0.play()?)
+                        }
+                        Music::BossMusic => {
+                            music_list.1.set_volume(0.75);
+                            Some(music_list.1.play()?)
+                        }
+                        Music::GameOverMusic => {
+                            music_list.2.set_volume(0.75);
+                            Some(music_list.2.play()?)
+                        }
+                        Music::VictoryMusic => {
+                            music_list.3.set_volume(0.75);
+                            Some(music_list.3.play()?)
+                        }
+                    };
+                    Ok(())
+                })?;
+                self.stop_handle = handle;
+            }
+        }
+        Ok(())
+    }
+
     pub fn play_music(&mut self, music: Music) -> Result<()> {
         self.stop_music()?;
-
-        let mut handle: Option<StopHandle> = None;
-        self.assets.execute(|music_list| {
-            handle = match music {
-                Music::NormalMusic => {
-                    music_list.0.set_volume(0.75);
-                    Some(music_list.0.play()?)
-                }
-                Music::BossMusic => {
-                    music_list.1.set_volume(0.75);
-                    Some(music_list.1.play()?)
-                }
-                Music::GameOverMusic => {
-                    music_list.2.set_volume(0.75);
-                    Some(music_list.2.play()?)
-                }
-                Music::VictoryMusic => {
-                    music_list.3.set_volume(0.75);
-                    Some(music_list.3.play()?)
-                }
-            };
-            Ok(())
-        })?;
-        self.stop_handle = handle;
+        self.current_music = Some(music);
         Ok(())
     }
 
     fn stop_music(&mut self) -> Result<()> {
-        let opt = self.stop_handle.take();
-        match opt {
-            Some(x) => x.stop(),
+        match self.stop_handle.take() {
+            Some(x) => {
+                self.current_music = None;
+                x.stop()
+            },
             None => Ok(()),
         }
     }
