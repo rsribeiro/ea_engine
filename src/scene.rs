@@ -10,7 +10,7 @@ use crate::{
     entity_factory::{EntityFactory, EntityFactoryConfig},
     hero::HeroConfig,
     instant::Instant,
-    music::{Music, MusicPlayer, MusicPlayerConfig},
+    music::MusicPlayer,
     resources::{
         DeltaTime, GameStateFlag, GameStateFlagRes, KeyboardKeys, LabelVariable, PressedKeys,
         VariableDictionary,
@@ -43,10 +43,13 @@ pub struct SceneConfig {
     pub victory_background: String,
     pub hero_config: HeroConfig,
     pub boss_config: BossConfig,
-    pub music_player_config: MusicPlayerConfig,
     pub entity_factory_config: EntityFactoryConfig,
     pub boss_cycle: u32,
     pub new_body_cycle: u64,
+    pub normal_music: String,
+    pub boss_music: String,
+    pub game_over_music: String,
+    pub victory_music: String,
 }
 
 impl Default for SceneConfig {
@@ -59,10 +62,13 @@ impl Default for SceneConfig {
             victory_background: "ceu".to_string(),
             hero_config: HeroConfig::default(),
             boss_config: BossConfig::default(),
-            music_player_config: MusicPlayerConfig::default(),
             entity_factory_config: EntityFactoryConfig::default(),
             boss_cycle: 11,
             new_body_cycle: 210,
+            normal_music: "music/normal.ogg".to_string(),
+            boss_music: "music/boss.ogg".to_string(),
+            game_over_music: "music/gameover.ogg".to_string(),
+            victory_music: "music/victory.ogg".to_string(),
         }
     }
 }
@@ -85,7 +91,7 @@ impl Scene {
     pub fn new(config: SceneConfig) -> Result<Self> {
         let atlas = Rc::new(RefCell::new(Asset::new(Atlas::load(config.atlas.clone()))));
         let font = Rc::new(RefCell::new(Asset::new(Font::load(config.font.clone()))));
-        let music_player = MusicPlayer::new(config.music_player_config.clone())?;
+        let music_player = MusicPlayer::new()?;
 
         let mut world = World::new();
         register_components(&mut world);
@@ -256,13 +262,13 @@ impl Scene {
     fn entity_factory(&mut self) -> Result<()> {
         if self.cycle_counter < self.config.boss_cycle {
             if self.cycle_timer == 0 {
-                self.music_player.play_music(Music::NormalMusic)?;
+                self.music_player.play_music(self.config.normal_music.clone())?;
             }
             self.cycle_timer += 1;
             if self.cycle_timer % self.config.new_body_cycle == 0 {
                 self.cycle_counter += 1;
                 if self.cycle_counter == self.config.boss_cycle {
-                    self.music_player.play_music(Music::BossMusic)?;
+                    self.music_player.play_music(self.config.boss_music.clone())?;
                     crate::enemy::create_boss(&mut self.world, self.config.boss_config.clone());
                 } else {
                     self.entity_factory.create_entity(&mut self.world)?;
@@ -288,14 +294,14 @@ impl Scene {
     fn defeat(&mut self) -> Result<()> {
         self.end_game()?;
         create_background(&mut self.world, self.config.defeat_background.clone());
-        self.music_player.play_music(Music::GameOverMusic)?;
+        self.music_player.play_music(self.config.game_over_music.clone())?;
         Ok(())
     }
 
     fn victory(&mut self) -> Result<()> {
         self.end_game()?;
         create_background(&mut self.world, self.config.victory_background.clone());
-        self.music_player.play_music(Music::VictoryMusic)?;
+        self.music_player.play_music(self.config.victory_music.clone())?;
         Ok(())
     }
 

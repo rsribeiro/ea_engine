@@ -384,35 +384,38 @@ impl<'a> System<'a> for CollisionSystem {
         for (e_hero, hero, hero_pos, hero_render) in (&entities, &mut hero, &pos, &render).join() {
             for (e, enemy_pos, enemy_render, enemy) in (&entities, &pos, &render, &enemy).join() {
                 let boss: Option<&mut Boss> = boss.get_mut(e);
-                if boss.is_none() {
-                    CollisionSystem::hero_enemy_collision(
-                        hero,
-                        enemy,
-                        hero_render,
-                        enemy_render,
-                        hero_pos.position,
-                        enemy_pos.position,
-                        &entities,
-                        e,
-                    );
-                } else if boss.is_some() {
-                    let change_sprite: Option<&mut ChangeSprite> = change_sprite.get_mut(e);
-                    let shooter: Option<&mut Shooter> = shooter.get_mut(e);
-                    CollisionSystem::hero_boss_collision(
-                        &mut flag,
-                        hero,
-                        enemy,
-                        boss.unwrap(),
-                        hero_render,
-                        enemy_render,
-                        hero_pos.position,
-                        enemy_pos.position,
-                        &entities,
-                        e,
-                        change_sprite,
-                        shooter,
-                    );
-                }
+                match boss {
+                    Some(boss) => {
+                        let change_sprite: Option<&mut ChangeSprite> = change_sprite.get_mut(e);
+                        let shooter: Option<&mut Shooter> = shooter.get_mut(e);
+                        CollisionSystem::hero_boss_collision(
+                            &mut flag,
+                            hero,
+                            enemy,
+                            boss,
+                            hero_render,
+                            enemy_render,
+                            hero_pos.position,
+                            enemy_pos.position,
+                            &entities,
+                            e,
+                            change_sprite,
+                            shooter,
+                        );
+                    },
+                    None => {
+                        CollisionSystem::hero_enemy_collision(
+                            hero,
+                            enemy,
+                            hero_render,
+                            enemy_render,
+                            hero_pos.position,
+                            enemy_pos.position,
+                            &entities,
+                            e,
+                        );
+                    }
+                };
             }
 
             for (e, healing_pos, healing_render, healing) in
