@@ -7,7 +7,7 @@ use quicksilver::{
 pub struct MusicPlayer {
     current_music: Option<Asset<Sound>>,
     stop_handle: Option<StopHandle>,
-    volume: f32
+    volume: f32,
 }
 
 impl MusicPlayer {
@@ -15,7 +15,7 @@ impl MusicPlayer {
         Ok(MusicPlayer {
             current_music: None,
             stop_handle: None,
-            volume: 0.75
+            volume: 0.75,
         })
     }
 
@@ -46,7 +46,7 @@ impl MusicPlayer {
             Some(x) => {
                 self.current_music = None;
                 x.stop()
-            },
+            }
             None => Ok(()),
         }
     }

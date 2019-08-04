@@ -1,4 +1,5 @@
 use crate::scene::{Scene, SceneConfig};
+use log::Level;
 use quicksilver::prelude::*;
 use std::path::{Path, PathBuf};
 
@@ -27,12 +28,26 @@ impl State for Game {
 }
 
 pub fn run() {
+    init_logger(Level::Info);
     let settings = Settings {
         icon_path: Some("icone.png"),
         show_cursor: false,
         ..Settings::default()
     };
     quicksilver::lifecycle::run::<Game>("Evil Alligator", Vector::new(800, 600), settings);
+}
+
+fn init_logger(level: Level) {
+    #[cfg(not(target_arch = "wasm32"))]
+    {
+        simple_logger::init_with_level(level).unwrap();
+    }
+    //TODO make this work
+    // #[cfg(target_arch = "wasm32")]
+    // {
+    //     // wasm_logger::init(wasm_logger::Config::new(log::Level::Debug));
+    //     // console_log::init_with_level(level).expect("error initializing log");
+    // }
 }
 
 fn create_scene(path: impl AsRef<Path>) -> impl Future<Item = Scene, Error = Error> {

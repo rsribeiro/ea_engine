@@ -6,9 +6,7 @@ use crate::{
         Render, Shooter, Velocity,
     },
     enemy::FireballConfig,
-    resources::{
-        DeltaTime, GameStateFlag, GameStateFlagRes, KeyboardKeys, PressedKeys, VariableDictionary,
-    },
+    resources::{GameStateFlag, GameStateFlagRes, KeyboardKeys, PressedKeys, VariableDictionary},
 };
 
 use specs::{Entities, Entity, Join, LazyUpdate, Read, ReadStorage, System, Write, WriteStorage};
@@ -87,15 +85,10 @@ impl<'a> System<'a> for RenderSystem<'a> {
 pub struct WalkSystem;
 
 impl<'a> System<'a> for WalkSystem {
-    type SystemData = (
-        Read<'a, DeltaTime>,
-        ReadStorage<'a, Velocity>,
-        WriteStorage<'a, Position>,
-    );
+    type SystemData = (ReadStorage<'a, Velocity>, WriteStorage<'a, Position>);
 
-    fn run(&mut self, (delta, vel, mut pos): Self::SystemData) {
-        let time_step =
-            delta.duration.as_secs() as f32 + (delta.duration.subsec_nanos() as f32 * 1e-9);
+    fn run(&mut self, (vel, mut pos): Self::SystemData) {
+        let time_step = 0.0167;
 
         for (vel, pos) in (&vel, &mut pos).join() {
             pos.position += vel.velocity * time_step;
@@ -402,7 +395,7 @@ impl<'a> System<'a> for CollisionSystem {
                             change_sprite,
                             shooter,
                         );
-                    },
+                    }
                     None => {
                         CollisionSystem::hero_enemy_collision(
                             hero,
@@ -458,12 +451,12 @@ impl<'a> System<'a> for CollisionSystem {
 pub struct HeroBlinkingSystem;
 
 impl<'a> System<'a> for HeroBlinkingSystem {
-    type SystemData = (Read<'a, DeltaTime>, WriteStorage<'a, Hero>);
+    type SystemData = (WriteStorage<'a, Hero>);
 
-    fn run(&mut self, (delta_time, mut hero): Self::SystemData) {
+    fn run(&mut self, mut hero: Self::SystemData) {
         for hero in (&mut hero).join() {
             if hero.blinking {
-                hero.blink_timer += delta_time.duration;
+                hero.blink_timer += Duration::from_nanos(16700000);
 
                 let blinking_time_sec = hero.blink_timer.as_secs() as f64
                     + (f64::from(hero.blink_timer.subsec_nanos()) * 1e-9);

@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use std::{cell::RefCell, rc::Rc, time::Duration};
+use std::{cell::RefCell, rc::Rc};
 
 use crate::{
     component::{
@@ -9,10 +9,9 @@ use crate::{
     enemy::BossConfig,
     entity_factory::{EntityFactory, EntityFactoryConfig},
     hero::HeroConfig,
-    instant::Instant,
     music::MusicPlayer,
     resources::{
-        DeltaTime, GameStateFlag, GameStateFlagRes, KeyboardKeys, LabelVariable, PressedKeys,
+        GameStateFlag, GameStateFlagRes, KeyboardKeys, LabelVariable, PressedKeys,
         VariableDictionary,
     },
     system::{
@@ -25,8 +24,9 @@ use quicksilver::{graphics::Atlas, prelude::*};
 
 use specs::prelude::*;
 
-#[derive(PartialEq)]
+#[derive(PartialEq, Copy, Clone)]
 enum GameState {
+    WaitingInput,
     Initialiazing,
     Running,
     Paused,
@@ -82,7 +82,6 @@ pub struct Scene {
     cycle_timer: u64,
     cycle_counter: u32,
     music_player: MusicPlayer,
-    last_instant: Instant,
     entity_factory: EntityFactory,
     config: SceneConfig,
 }
@@ -116,6 +115,12 @@ impl Scene {
             FontStyle::new(48.0, Color::BLACK),
             Vector::new(730, 20),
         );
+        create_label(
+            &mut world,
+            LabelVariable::EngineVersion,
+            FontStyle::new(48.0, Color::BLACK),
+            Vector::new(730, 587),
+        );
         let hero = crate::hero::create_hero(&mut world, config.hero_config.clone());
 
         Ok(Scene {
@@ -123,51 +128,55 @@ impl Scene {
             atlas,
             font,
             hero,
-            state: GameState::Initialiazing,
+            state: GameState::WaitingInput,
             cycle_timer: 0,
             cycle_counter: 0,
             music_player,
-            last_instant: Instant::now(),
             entity_factory: EntityFactory::new(config.entity_factory_config.clone())?,
             config,
         })
     }
 
     pub fn update(&mut self, _window: &mut Window) -> Result<()> {
-        if self.state == GameState::Running {
-            self.update_time_step()?;
-            self.entity_factory()?;
-            self.run_update_systems()?;
-            let flag = self.world.read_resource::<GameStateFlagRes>().flag;
-            if let Some(f) = flag {
-                match f {
-                    GameStateFlag::Victory => self.victory(),
-                    GameStateFlag::Defeat => self.defeat(),
-                }?;
+        if self.state != GameState::WaitingInput {
+            if self.state == GameState::Running {
+                self.entity_factory()?;
+                self.run_update_systems()?;
+                let flag = self.world.read_resource::<GameStateFlagRes>().flag;
+                if let Some(f) = flag {
+                    match f {
+                        GameStateFlag::Victory => self.victory(),
+                        GameStateFlag::Defeat => self.defeat(),
+                    }?;
+                }
             }
-        } else if self.state == GameState::Paused {
-            self.update_time_step()?;
+            self.music_player.update()?;
+            self.world.maintain();
         }
-        self.music_player.update()?;
-        self.world.maintain();
         Ok(())
     }
 
     pub fn draw(&mut self, window: &mut Window) -> Result<()> {
         window.clear(Color::WHITE)?;
 
-        let mut running = self.state == GameState::Running;
-        if !running && self.state != GameState::Paused {
-            self.atlas.borrow_mut().execute(|_| {
-                running = true;
+        let loaded_assets = self.has_loaded_atlas()? && self.has_loaded_font()?;
+        if !loaded_assets {
+            return Ok(());
+        } else if loaded_assets && self.state == GameState::WaitingInput {
+            return self.font.borrow_mut().execute(|font| {
+                let rendered_label = font.render(
+                    "Press ENTER to start...",
+                    &FontStyle::new(72.0, Color::BLACK),
+                )?;
+                window.draw(
+                    &rendered_label.area().with_center((400, 300)),
+                    Img(&rendered_label),
+                );
                 Ok(())
-            })?;
-
-            if self.state == GameState::Initialiazing && running {
-                self.state = GameState::Running;
-            } else if self.state == GameState::Initialiazing && !running {
-                return Ok(());
-            }
+            });
+        } else if loaded_assets && self.state == GameState::Initialiazing {
+            log::debug!("Starting game...");
+            self.state = GameState::Running;
         }
 
         RenderSystem::new(window, Rc::clone(&self.atlas))?.run_now(&self.world.res);
@@ -183,6 +192,12 @@ impl Scene {
 
     pub fn event(&mut self, event: &Event, window: &mut Window) -> Result<()> {
         match self.state {
+            GameState::WaitingInput => match event {
+                Event::Key(Key::Return, ButtonState::Pressed) => {
+                    self.state = GameState::Initialiazing;
+                }
+                _ => {}
+            },
             GameState::Running | GameState::Paused => {
                 let mut pressed_keys = self.world.write_resource::<PressedKeys>();
                 let pressed_keys = &mut pressed_keys.pressed_keys;
@@ -241,6 +256,7 @@ impl Scene {
                 | Event::Key(Key::Return, ButtonState::Pressed)
                 | Event::GamepadButton(_, GamepadButton::Start, ButtonState::Pressed) = event
                 {
+                    log::debug!("Closing window");
                     window.close();
                 }
             }
@@ -262,13 +278,15 @@ impl Scene {
     fn entity_factory(&mut self) -> Result<()> {
         if self.cycle_counter < self.config.boss_cycle {
             if self.cycle_timer == 0 {
-                self.music_player.play_music(self.config.normal_music.clone())?;
+                self.music_player
+                    .play_music(self.config.normal_music.clone())?;
             }
             self.cycle_timer += 1;
             if self.cycle_timer % self.config.new_body_cycle == 0 {
                 self.cycle_counter += 1;
                 if self.cycle_counter == self.config.boss_cycle {
-                    self.music_player.play_music(self.config.boss_music.clone())?;
+                    self.music_player
+                        .play_music(self.config.boss_music.clone())?;
                     crate::enemy::create_boss(&mut self.world, self.config.boss_config.clone());
                 } else {
                     self.entity_factory.create_entity(&mut self.world)?;
@@ -278,30 +296,21 @@ impl Scene {
         Ok(())
     }
 
-    fn update_time_step(&mut self) -> Result<()> {
-        let now = Instant::now();
-        let time_step = now.duration_since(self.last_instant.clone());
-        self.last_instant = now;
-        {
-            let mut delta = self.world.write_resource::<DeltaTime>();
-            *delta = DeltaTime {
-                duration: time_step,
-            };
-        }
-        Ok(())
-    }
-
     fn defeat(&mut self) -> Result<()> {
+        log::debug!("Player has been defeated");
         self.end_game()?;
         create_background(&mut self.world, self.config.defeat_background.clone());
-        self.music_player.play_music(self.config.game_over_music.clone())?;
+        self.music_player
+            .play_music(self.config.game_over_music.clone())?;
         Ok(())
     }
 
     fn victory(&mut self) -> Result<()> {
+        log::debug!("Player is victorious");
         self.end_game()?;
         create_background(&mut self.world, self.config.victory_background.clone());
-        self.music_player.play_music(self.config.victory_music.clone())?;
+        self.music_player
+            .play_music(self.config.victory_music.clone())?;
         Ok(())
     }
 
@@ -323,6 +332,10 @@ impl Scene {
                     ),
                     (LabelVariable::HeroLives, format!("{}", hero.lives)),
                     (LabelVariable::Score, format!("{}", hero.score)),
+                    (
+                        LabelVariable::EngineVersion,
+                        format!("v{}", env!("CARGO_PKG_VERSION")),
+                    ),
                 ]
                 .iter()
                 .cloned()
@@ -330,6 +343,30 @@ impl Scene {
             }
         }
         Ok(())
+    }
+
+    fn has_loaded_atlas(&mut self) -> Result<bool> {
+        let mut loaded_atlas =
+            self.state != GameState::WaitingInput && self.state != GameState::Initialiazing;
+        if !loaded_atlas {
+            self.atlas.borrow_mut().execute(|_| {
+                loaded_atlas = true;
+                Ok(())
+            })?;
+        }
+        Ok(loaded_atlas)
+    }
+
+    fn has_loaded_font(&mut self) -> Result<bool> {
+        let mut loaded_font =
+            self.state != GameState::WaitingInput && self.state != GameState::Initialiazing;
+        if !loaded_font {
+            self.font.borrow_mut().execute(|_| {
+                loaded_font = true;
+                Ok(())
+            })?;
+        }
+        Ok(loaded_font)
     }
 }
 
@@ -351,14 +388,15 @@ fn register_components(world: &mut World) {
 
 fn add_resorces(world: &mut World) {
     world.add_resource(GameStateFlagRes { flag: None });
-    world.add_resource(DeltaTime {
-        duration: Duration::new(0, 0),
-    });
     world.add_resource(VariableDictionary {
         dictionary: [
             (LabelVariable::FramesPerSecond, "60".to_string()),
             (LabelVariable::HeroLives, "5".to_string()),
             (LabelVariable::Score, "0".to_string()),
+            (
+                LabelVariable::EngineVersion,
+                format!("v{}", env!("CARGO_PKG_VERSION")),
+            ),
         ]
         .iter()
         .cloned()

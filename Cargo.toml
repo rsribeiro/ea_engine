@@ -1,6 +1,6 @@
 [package]
 name = "eangine"
-version = "0.4.0"
+version = "0.5.0"
 authors = ["Ricardo Ribeiro <ricardo@souzaribeiro.com>"]
 edition = "2018"
 categories = ["game-engines"]
@@ -10,26 +10,28 @@ readme = "README.md"
 repository = "https://github.com/rsribeiro/ea_engine/"
 
 [dependencies]
-specs-derive = "0.4.0"
+specs-derive = "0.4"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
-
-[target.'cfg(not(target_arch = "wasm32"))'.dependencies.rand]
-version = "0.6.5"
+log = "0.4"
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
-stdweb = "0.4.17"
-specs = { version = "0.14.3", default-features = false }
+stdweb = "0.4"
+specs = { version = "0.14", default-features = false }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-specs = "0.14.3"
+specs = "0.14"
+simple_logger = "1.3.0"
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies.rand]
+version = "0.7"
 
 [target.'cfg(target_arch = "wasm32")'.dependencies.rand]
-version = "0.6.5"
+version = "0.7"
 features = ["stdweb"]
 
 [dependencies.quicksilver]
-version = "0.3.15"
+version = "0.3.18"
 default-features = false
 features = ["fonts", "sounds", "gamepads"]
 

@@ -6,6 +6,9 @@ extern crate specs_derive;
 #[cfg(target_arch = "wasm32")]
 #[macro_use]
 extern crate stdweb;
+extern crate log;
+#[cfg(not(target_arch = "wasm32"))]
+extern crate simple_logger;
 
 pub mod component;
 pub mod enemy;

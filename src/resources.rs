@@ -1,4 +1,4 @@
-use std::{collections::HashMap, time::Duration};
+use std::collections::HashMap;
 
 use specs::BitSet;
 
@@ -7,6 +7,7 @@ pub enum LabelVariable {
     HeroLives,
     FramesPerSecond,
     Score,
+    EngineVersion,
 }
 
 #[derive(Debug, Eq, PartialEq, Hash, Copy, Clone)]
@@ -15,14 +16,9 @@ pub enum GameStateFlag {
     Defeat = 2,
 }
 
-#[derive(Default)]
+#[derive(Default, Copy, Clone)]
 pub struct GameStateFlagRes {
     pub flag: Option<GameStateFlag>,
-}
-
-#[derive(Default)]
-pub struct DeltaTime {
-    pub duration: Duration,
 }
 
 #[derive(Default)]

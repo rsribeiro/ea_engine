@@ -7,7 +7,7 @@ use rand::{thread_rng, Rng};
 use serde::{Deserialize, Serialize};
 use specs::World;
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Copy, Clone)]
 pub enum FactoryType {
     Fixed,
     Random,

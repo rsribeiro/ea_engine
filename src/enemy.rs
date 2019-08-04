@@ -37,7 +37,7 @@ pub struct EnemyConfig {
     pub shooter_config: Option<ShooterConfig>,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Copy, Clone)]
 pub enum EnemyType {
     Walker,
     Shooter,

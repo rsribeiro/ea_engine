@@ -9,26 +9,26 @@ use quicksilver::{
 
 use specs::{world::Index, Component, NullStorage, VecStorage};
 
-#[derive(Component, Debug)]
+#[derive(Component, Debug, Copy, Clone)]
 #[storage(VecStorage)]
 pub struct Position {
     pub position: Vector,
 }
 
-#[derive(Component, Debug)]
+#[derive(Component, Debug, Copy, Clone)]
 #[storage(VecStorage)]
 pub struct Velocity {
     pub velocity: Vector,
 }
 
-#[derive(Component, Debug)]
+#[derive(Component, Debug, Clone)]
 #[storage(VecStorage)]
 pub struct Render {
     pub sprite: String,
     pub bounding_box: Option<Rectangle>,
 }
 
-#[derive(Component, Debug)]
+#[derive(Component, Debug, Clone)]
 #[storage(VecStorage)]
 pub struct Shooter {
     pub projectile_sprite: String,
@@ -37,14 +37,14 @@ pub struct Shooter {
     pub coefficient: (f32, f32),
 }
 
-#[derive(Component, Debug)]
+#[derive(Component, Debug, Copy, Clone)]
 #[storage(VecStorage)]
 pub struct Label {
     pub bind_variable: LabelVariable,
     pub font_style: FontStyle,
 }
 
-#[derive(Component, Debug)]
+#[derive(Component, Debug, Copy, Clone)]
 #[storage(VecStorage)]
 pub struct Hero {
     pub lives: i32,
@@ -55,41 +55,41 @@ pub struct Hero {
     pub blink_timer: Duration,
 }
 
-#[derive(Component, Debug)]
+#[derive(Component, Debug, Copy, Clone)]
 #[storage(VecStorage)]
 pub struct Boss {
     pub lives: i32,
     pub normal_lives: i32,
 }
 
-#[derive(Component, Debug)]
+#[derive(Component, Debug, Clone)]
 #[storage(VecStorage)]
 pub struct ChangeSprite {
     pub new_sprite: String,
     pub do_change: bool,
 }
 
-#[derive(Component, Debug)]
+#[derive(Component, Debug, Copy, Clone)]
 #[storage(VecStorage)]
 pub struct Enemy {
     pub score: i32,
 }
 
-#[derive(Component, Debug, Default)]
+#[derive(Component, Debug, Default, Copy, Clone)]
 #[storage(VecStorage)]
 pub struct Healing {
     pub score: i32,
 }
 
-#[derive(Component, Debug, Default)]
+#[derive(Component, Debug, Default, Copy, Clone)]
 #[storage(NullStorage)]
 pub struct Background;
 
-#[derive(Component, Debug, Default)]
+#[derive(Component, Debug, Default, Copy, Clone)]
 #[storage(NullStorage)]
 pub struct CalculateOutOfBounds;
 
-#[derive(Component, Debug, Default)]
+#[derive(Component, Debug, Default, Copy, Clone)]
 #[storage(VecStorage)]
 pub struct Fireball {
     pub owner_id: Option<Index>,
